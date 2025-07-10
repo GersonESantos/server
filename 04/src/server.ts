@@ -8,233 +8,23 @@ import {
 import fastifySwagger from '@fastify/swagger';
 import fastifySwaggerUi from '@fastify/swagger-ui';
 
-// Criar instância do Fastify com TypeProvider do Zod
+// Criar instância do Fastify
 const app = fastify({
-  logger: true, // Habilita logs
+  logger: true
 }).withTypeProvider<ZodTypeProvider>();
 
-// Configurar compiladores do Zod
-app.setValidatorCompiler(validatorCompiler);
-app.setSerializerCompiler(serializerCompiler);
-
-// Registrar plugin de CORS
-await app.register(import('@fastify/cors'), {
-  origin: ['http://localhost:3000', 'http://localhost:5173'], // Adicione suas origens permitidas
-  credentials: true
-});
-// Registrar Swagger para documentação da API
-app.register(fastifySwagger, {
-  openapi: {
-    info: {
-      title: 'API Health Check - Fastify + Zod',
-      description: 'Documentação completa da API de Health Check com validação de schemas usando Zod e TypeScript',
-      version: '1.0.0',
-      contact: {
-        name: 'Desenvolvedor',
-        email: 'dev@exemplo.com'
-      },
-      license: {
-        name: 'ISC',
-        url: 'https://opensource.org/licenses/ISC'
-      }
-    },
-    servers: [
-      {
-        url: 'http://localhost:3333',
-        description: 'Servidor de desenvolvimento'
-      }
-    ],
-    tags: [
-      {
-        name: 'Root',
-        description: 'Endpoint principal da aplicação'
-      },
-      {
-        name: 'Health',
-        description: 'Endpoints para monitoramento de saúde do servidor'
-      },
-      {
-        name: 'Usuarios',
-        description: 'Endpoints para gerenciamento de usuários'
-      }
-    ]
-  }
-});
-
-// Registrar Swagger UI
-app.register(fastifySwaggerUi, {
-  routePrefix: '/docs',
-  uiConfig: {
-    docExpansion: 'list',
-    deepLinking: false
-  },
-  staticCSP: true,
-  transformStaticCSP: (header) => header,
-  transformSpecification: (swaggerObject, request, reply) => {
-    return swaggerObject;
-  },
-  transformSpecificationClone: true
-});
-// Schema de resposta para Health Check
-const healthResponseSchema = z.object({
-  status: z.string(),
-  timestamp: z.string(),
-  uptime: z.number(),
-  environment: z.string(),
-  version: z.string()
-});
-
-// Rota de Health Check
-app.get('/health', {
-  schema: {
-    summary: 'Health Check do servidor',
-    description: 'Verifica se o servidor está funcionando corretamente',
-    tags: ['Health'],
-    response: {
-      200: healthResponseSchema
-    }
-  }
-}, async (request, reply) => {
-  const healthData = {
-    status: 'ok',
-    timestamp: new Date().toISOString(),
-    uptime: process.uptime(),
-    environment: process.env.NODE_ENV || 'development',
-    version: '1.0.0'
-  };
-
-  return reply.status(200).send(healthData);
-});
-
-// Rota adicional para status detalhado
-app.get('/status', {
-  schema: {
-    summary: 'Status detalhado do servidor',
-    description: 'Informações detalhadas sobre o servidor',
-    tags: ['Health'],
-    response: {
-      200: z.object({
-        status: z.string(),
-        timestamp: z.string(),
-        uptime: z.number(),
-        memory: z.object({
-          used: z.number(),
-          total: z.number(),
-          percentage: z.number()
-        }),
-        cpu: z.object({
-          usage: z.number()
-        }),
-        environment: z.string(),
-        version: z.string(),
-        nodeVersion: z.string()
-      })
-    }
-  }
-}, async (request, reply) => {
-  const memoryUsage = process.memoryUsage();
-  const totalMemory = memoryUsage.heapTotal;
-  const usedMemory = memoryUsage.heapUsed;
-  
-  const statusData = {
-    status: 'ok',
-    timestamp: new Date().toISOString(),
-    uptime: process.uptime(),
-    memory: {
-      used: usedMemory,
-      total: totalMemory,
-      percentage: Math.round((usedMemory / totalMemory) * 100)
-    },
-    cpu: {
-      usage: process.cpuUsage().user / 1000000 // Converter para segundos
-    },
-    environment: process.env.NODE_ENV || 'development',
-    version: '1.0.0',
-    nodeVersion: process.version
-  };
-
-  return reply.status(200).send(statusData);
-});
-
-// Rota raiz
-app.get('/', {
-  schema: {
-    summary: 'Rota raiz',
-    description: 'Endpoint principal da API',
-    tags: ['Root'],
-    response: {
-      200: z.object({
-        message: z.string(),
-        api: z.string(),
-        version: z.string(),
-        documentacao: z.string(),
-        endpoints: z.array(z.string())
-      })
-    }
-  }
-}, async (request, reply) => {
-  return reply.status(200).send({
-    message: 'API está funcionando!',
-    api: 'Fastify Server com Swagger',
-    version: '1.0.0',
-    documentacao: '/docs',
-    endpoints: ['/health', '/status', '/usuarios', '/docs']
-  });
-});
-
-// Schema para exemplo de usuário
+// Schema do usuário
 const usuarioSchema = z.object({
   id: z.number(),
   nome: z.string(),
-  email: z.string().email(),
-  ativo: z.boolean()
+  email: z.string()
 });
 
-const criarUsuarioSchema = z.object({
-  nome: z.string().min(2, 'Nome deve ter pelo menos 2 caracteres'),
-  email: z.string().email('Email deve ser válido'),
-  ativo: z.boolean().optional().default(true)
-});
-
-// Endpoint de exemplo para demonstrar Swagger
-app.post('/usuarios', {
-  schema: {
-    summary: 'Criar novo usuário',
-    description: 'Endpoint de exemplo para demonstrar validação com Zod e documentação Swagger',
-    tags: ['Usuarios'],
-    body: criarUsuarioSchema,
-    response: {
-      201: usuarioSchema,
-      400: z.object({
-        error: z.string(),
-        message: z.string(),
-        timestamp: z.string()
-      })
-    }
-  }
-}, async (request, reply) => {
-  const { nome, email, ativo = true } = request.body as {
-    nome: string;
-    email: string;
-    ativo?: boolean;
-  };
-  
-  // Simulando criação de usuário
-  const novoUsuario = {
-    id: Math.floor(Math.random() * 1000),
-    nome,
-    email,
-    ativo
-  };
-
-  return reply.status(201).send(novoUsuario);
-});
-
-// Endpoint para listar usuários
+// Endpoint GET /usuarios
 app.get('/usuarios', {
   schema: {
     summary: 'Listar usuários',
-    description: 'Retorna uma lista de usuários cadastrados',
+    description: 'Retorna lista de usuários',
     tags: ['Usuarios'],
     response: {
       200: z.object({
@@ -244,69 +34,214 @@ app.get('/usuarios', {
     }
   }
 }, async (request, reply) => {
-  // Dados mockados para exemplo
-  const usuariosMock = [
-    { id: 1, nome: 'João Silva', email: 'joao@exemplo.com', ativo: true },
-    { id: 2, nome: 'Maria Santos', email: 'maria@exemplo.com', ativo: true },
-    { id: 3, nome: 'Pedro Costa', email: 'pedro@exemplo.com', ativo: false }
+  const usuarios = [
+    { id: 1, nome: 'João', email: 'joao@teste.com' },
+    { id: 2, nome: 'Maria', email: 'maria@teste.com' }
   ];
 
-  return reply.status(200).send({
-    usuarios: usuariosMock,
-    total: usuariosMock.length
+  return reply.send({
+    usuarios,
+    total: 2
   });
 });
 
-// Handler para erros não capturados
-app.setErrorHandler((error, request, reply) => {
-  app.log.error(error);
+// Schema para criar usuário
+const criarUsuarioSchema = z.object({
+  nome: z.string().min(2, 'Nome deve ter pelo menos 2 caracteres'),
+  email: z.string().email('Email deve ser válido')
+});
+
+// Endpoint POST /usuarios
+app.post('/usuarios', {
+  schema: {
+    summary: 'Criar usuário',
+    description: 'Cria um novo usuário',
+    tags: ['Usuarios'],
+    body: criarUsuarioSchema,
+    response: {
+      201: usuarioSchema,
+      400: z.object({
+        error: z.string(),
+        message: z.string()
+      })
+    }
+  }
+}, async (request, reply) => {
+  const { nome, email } = request.body as {
+    nome: string;
+    email: string;
+  };
+
+  // Simular criação de usuário
+  const novoUsuario = {
+    id: Math.floor(Math.random() * 1000),
+    nome,
+    email
+  };
+
+  return reply.status(201).send(novoUsuario);
+});
+
+// Endpoint GET /usuarios/:id
+app.get('/usuarios/:id', {
+  schema: {
+    summary: 'Buscar usuário por ID',
+    description: 'Retorna um usuário específico pelo ID',
+    tags: ['Usuarios'],
+    params: z.object({
+      id: z.string().transform(Number)
+    }),
+    response: {
+      200: usuarioSchema,
+      404: z.object({
+        error: z.string(),
+        message: z.string()
+      })
+    }
+  }
+}, async (request, reply) => {
+  const { id } = request.params as { id: number };
   
-  reply.status(500).send({
-    error: 'Internal Server Error',
-    message: 'Algo deu errado no servidor',
-    timestamp: new Date().toISOString()
+  // Dados mockados
+  const usuarios = [
+    { id: 1, nome: 'João', email: 'joao@teste.com' },
+    { id: 2, nome: 'Maria', email: 'maria@teste.com' }
+  ];
+
+  const usuario = usuarios.find(u => u.id === id);
+  
+  if (!usuario) {
+    return reply.status(404).send({
+      error: 'Not Found',
+      message: `Usuário com ID ${id} não encontrado`
+    });
+  }
+
+  return reply.send(usuario);
+});
+
+// Schema para atualizar usuário
+const atualizarUsuarioSchema = z.object({
+  nome: z.string().min(2, 'Nome deve ter pelo menos 2 caracteres').optional(),
+  email: z.string().email('Email deve ser válido').optional()
+});
+
+// Endpoint PUT /usuarios/:id
+app.put('/usuarios/:id', {
+  schema: {
+    summary: 'Atualizar usuário',
+    description: 'Atualiza os dados de um usuário',
+    tags: ['Usuarios'],
+    params: z.object({
+      id: z.string().transform(Number)
+    }),
+    body: atualizarUsuarioSchema,
+    response: {
+      200: usuarioSchema,
+      404: z.object({
+        error: z.string(),
+        message: z.string()
+      })
+    }
+  }
+}, async (request, reply) => {
+  const { id } = request.params as { id: number };
+  const updates = request.body as {
+    nome?: string;
+    email?: string;
+  };
+  
+  // Simular atualização
+  const usuarioAtualizado = {
+    id,
+    nome: updates.nome || 'Nome Atualizado',
+    email: updates.email || 'email@atualizado.com'
+  };
+
+  return reply.send(usuarioAtualizado);
+});
+
+// Endpoint DELETE /usuarios/:id
+app.delete('/usuarios/:id', {
+  schema: {
+    summary: 'Deletar usuário',
+    description: 'Remove um usuário do sistema',
+    tags: ['Usuarios'],
+    params: z.object({
+      id: z.string().transform(Number)
+    }),
+    response: {
+      200: z.object({
+        message: z.string(),
+        id: z.number()
+      }),
+      404: z.object({
+        error: z.string(),
+        message: z.string()
+      })
+    }
+  }
+}, async (request, reply) => {
+  const { id } = request.params as { id: number };
+  
+  return reply.send({
+    message: `Usuário com ID ${id} foi deletado com sucesso`,
+    id
   });
 });
 
-// Inicializar servidor
+// Iniciar servidor
 const start = async () => {
   try {
-    const port = Number(process.env.PORT) || 3333;
-    const host = process.env.HOST || 'localhost';
-    
-    await app.listen({ port, host });
-    
-    console.log('🚀 Servidor HTTP rodando!');
-    console.log(`📍 URL: http://${host}:${port}`);
-    console.log(`📚 Documentação Swagger: http://${host}:${port}/docs`);
-    console.log(`🏥 Health Check: http://${host}:${port}/health`);
-    console.log(`📊 Status Detalhado: http://${host}:${port}/status`);
-    
+    // Configurar compiladores do Zod
+    app.setValidatorCompiler(validatorCompiler);
+    app.setSerializerCompiler(serializerCompiler);
+
+    // Registrar CORS
+    await app.register(import('@fastify/cors'), {
+      origin: true
+    });
+
+    // Registrar todos os endpoints primeiro
+    await app.ready();
+
+    // Registrar Swagger
+    await app.register(fastifySwagger, {
+      swagger: {
+        info: {
+          title: 'API Simples',
+          description: 'API para gerenciamento de usuários',
+          version: '1.0.0'
+        },
+        host: 'localhost:3333',
+        schemes: ['http'],
+        consumes: ['application/json'],
+        produces: ['application/json'],
+        tags: [
+          {
+            name: 'Usuarios',
+            description: 'Endpoints para usuários'
+          }
+        ]
+      }
+    });
+
+    // Registrar Swagger UI
+    await app.register(fastifySwaggerUi, {
+      routePrefix: '/docs',
+      uiConfig: {
+        docExpansion: 'full',
+        deepLinking: true
+      }
+    });
+
+    await app.listen({ port: 3333, host: 'localhost' });
+    console.log('🚀 Servidor rodando em http://localhost:3333');
+    console.log('📚 Swagger em http://localhost:3333/docs');
   } catch (error) {
-    app.log.error(error);
-    console.error('❌ Erro ao iniciar servidor:', error);
+    console.error('❌ Erro:', error);
     process.exit(1);
   }
 };
 
-// Graceful shutdown
-const gracefulShutdown = async (signal: string) => {
-  console.log(`\n🛑 Recebido sinal ${signal}. Fechando servidor...`);
-  
-  try {
-    await app.close();
-    console.log('✅ Servidor fechado com sucesso');
-    process.exit(0);
-  } catch (error) {
-    console.error('❌ Erro ao fechar servidor:', error);
-    process.exit(1);
-  }
-};
-
-// Listeners para sinais de shutdown
-process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
-process.on('SIGINT', () => gracefulShutdown('SIGINT'));
-
-// Iniciar aplicação
 start();
-
