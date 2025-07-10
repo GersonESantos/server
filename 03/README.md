@@ -309,3 +309,8 @@ Este projeto está sob a licença ISC.
 ---
 
 **Desenvolvido com ❤️ usando Fastify + TypeScript + Zod**
+URLs disponíveis:
+API: http://localhost:3333
+Swagger: http://localhost:3333/docs
+Health: http://localhost:3333/health
+Status: http://localhost:3333/status

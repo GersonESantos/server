@@ -1,6 +1,6 @@
-# 🚀 API Fastify com Documentação Swagger
+# 🚀 API Fastify - CRUD Completo com Swagger
 
-Um servidor HTTP moderno e robusto construído com **Fastify**, **TypeScript**, **Zod** e **Swagger** para documentação automática. Este projeto implementa um sistema completo de Health Check com monitoramento de métricas do sistema e documentação interativa.
+Um servidor HTTP moderno com **CRUD completo de usuários**, documentação **Swagger** automática, validação **Zod** e **TypeScript**. Este projeto implementa um sistema completo de Health Check com monitoramento de métricas e API REST funcional.
 
 ## 📚 **Documentação Swagger Interativa**
 
@@ -207,6 +207,64 @@ Status detalhado com métricas do sistema
   "environment": "development",
   "version": "1.0.0",
   "nodeVersion": "v20.10.0"
+}
+```
+
+### **👥 CRUD de Usuários (Novo!)**
+- **GET /usuarios** - Listar todos os usuários
+- **POST /usuarios** - Criar novo usuário  
+- **GET /usuarios/:id** - Buscar usuário por ID
+- **PUT /usuarios/:id** - Atualizar usuário
+- **DELETE /usuarios/:id** - Deletar usuário
+
+## 📋 **Exemplos de Uso dos Endpoints**
+
+### **Criar Usuário (POST /usuarios)**
+```json
+{
+  "nome": "João Silva",
+  "email": "joao@exemplo.com", 
+  "ativo": true
+}
+```
+
+### **Atualizar Usuário (PUT /usuarios/:id)**
+```json
+{
+  "nome": "João Santos",
+  "email": "joao.santos@exemplo.com",
+  "ativo": false
+}
+```
+
+### **Resposta de Usuário**
+```json
+{
+  "id": 123,
+  "nome": "João Silva",
+  "email": "joao@exemplo.com",
+  "ativo": true
+}
+```
+
+### **Lista de Usuários (GET /usuarios)**
+```json
+{
+  "usuarios": [
+    {
+      "id": 1,
+      "nome": "João Silva", 
+      "email": "joao@exemplo.com",
+      "ativo": true
+    },
+    {
+      "id": 2,
+      "nome": "Maria Santos",
+      "email": "maria@exemplo.com", 
+      "ativo": true
+    }
+  ],
+  "total": 2
 }
 ```
 
