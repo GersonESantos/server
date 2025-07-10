@@ -55,7 +55,7 @@ app.register(fastifySwagger, {
       },
       {
         name: 'Usuarios',
-        description: 'Endpoints para gerenciamento completo de usuários (CRUD)'
+        description: 'Endpoints para gerenciamento de usuários'
       }
     ]
   }
@@ -175,19 +175,10 @@ app.get('/', {
 }, async (request, reply) => {
   return reply.status(200).send({
     message: 'API está funcionando!',
-    api: 'Fastify Server com Swagger - CRUD Completo',
+    api: 'Fastify Server com Swagger',
     version: '1.0.0',
     documentacao: '/docs',
-    endpoints: [
-      '/health',
-      '/status', 
-      'GET /usuarios',
-      'POST /usuarios',
-      'GET /usuarios/:id',
-      'PUT /usuarios/:id',
-      'DELETE /usuarios/:id',
-      '/docs'
-    ]
+    endpoints: ['/health', '/status', '/usuarios', '/docs']
   });
 });
 
@@ -262,122 +253,7 @@ app.get('/usuarios', {
 
   return reply.status(200).send({
     usuarios: usuariosMock,
-    total: 3
-  });
-});
-
-// Endpoint para buscar usuário por ID
-app.get('/usuarios/:id', {
-  schema: {
-    summary: 'Buscar usuário por ID',
-    description: 'Retorna um usuário específico pelo seu ID',
-    tags: ['Usuarios'],
-    params: z.object({
-      id: z.string().transform(Number)
-    }),
-    response: {
-      200: usuarioSchema,
-      404: z.object({
-        error: z.string(),
-        message: z.string(),
-        timestamp: z.string()
-      })
-    }
-  }
-}, async (request, reply) => {
-  const { id } = request.params as { id: number };
-  
-  // Dados mockados para exemplo
-  const usuariosMock = [
-    { id: 1, nome: 'João Silva', email: 'joao@exemplo.com', ativo: true },
-    { id: 2, nome: 'Maria Santos', email: 'maria@exemplo.com', ativo: true },
-    { id: 3, nome: 'Pedro Costa', email: 'pedro@exemplo.com', ativo: false }
-  ];
-
-  const usuario = usuariosMock.find(u => u.id === id);
-  
-  if (!usuario) {
-    return reply.status(404).send({
-      error: 'Not Found',
-      message: `Usuário com ID ${id} não encontrado`,
-      timestamp: new Date().toISOString()
-    });
-  }
-
-  return reply.status(200).send(usuario);
-});
-
-// Endpoint para atualizar usuário
-app.put('/usuarios/:id', {
-  schema: {
-    summary: 'Atualizar usuário',
-    description: 'Atualiza os dados de um usuário existente',
-    tags: ['Usuarios'],
-    params: z.object({
-      id: z.string().transform(Number)
-    }),
-    body: z.object({
-      nome: z.string().min(2, 'Nome deve ter pelo menos 2 caracteres').optional(),
-      email: z.string().email('Email deve ser válido').optional(),
-      ativo: z.boolean().optional()
-    }),
-    response: {
-      200: usuarioSchema,
-      404: z.object({
-        error: z.string(),
-        message: z.string(),
-        timestamp: z.string()
-      })
-    }
-  }
-}, async (request, reply) => {
-  const { id } = request.params as { id: number };
-  const updates = request.body as {
-    nome?: string;
-    email?: string;
-    ativo?: boolean;
-  };
-  
-  // Simular busca e atualização
-  const usuarioAtualizado = {
-    id,
-    nome: updates.nome || 'Nome Atualizado',
-    email: updates.email || 'email@atualizado.com',
-    ativo: updates.ativo !== undefined ? updates.ativo : true
-  };
-
-  return reply.status(200).send(usuarioAtualizado);
-});
-
-// Endpoint para deletar usuário
-app.delete('/usuarios/:id', {
-  schema: {
-    summary: 'Deletar usuário',
-    description: 'Remove um usuário do sistema',
-    tags: ['Usuarios'],
-    params: z.object({
-      id: z.string().transform(Number)
-    }),
-    response: {
-      200: z.object({
-        message: z.string(),
-        id: z.number(),
-        timestamp: z.string()
-      }),
-      404: z.object({
-        error: z.string(),
-        message: z.string(),
-        timestamp: z.string()
-      })
-    }
-  }
-}, async (request, reply) => {
-  const { id } = request.params as { id: number };
-  
-  return reply.status(200).send({
-    message: `Usuário com ID ${id} foi deletado com sucesso`,
-    id,
-    timestamp: new Date().toISOString()
+    total: usuariosMock.length
   });
 });
 
