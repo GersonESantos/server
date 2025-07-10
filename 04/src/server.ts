@@ -80,11 +80,24 @@ const start = async () => {
     }
   };
 
-  // Dados mockados
+  // Dados mockados (simulando banco de dados)
   const usuariosMock = [
     { id: 1, nome: 'João Silva', email: 'joao@teste.com' },
-    { id: 2, nome: 'Maria Santos', email: 'maria@teste.com' }
+    { id: 2, nome: 'Maria Santos', email: 'maria@teste.com' },
+    { id: 3, nome: 'Pedro Oliveira', email: 'pedro@exemplo.com' },
+    { id: 4, nome: 'Ana Costa', email: 'ana@exemplo.com' },
+    { id: 5, nome: 'Carlos Eduardo', email: 'carlos@teste.com' },
+    { id: 6, nome: 'Fernanda Lima', email: 'fernanda@exemplo.com' },
+    { id: 7, nome: 'Roberto Alves', email: 'roberto@teste.com' },
+    { id: 8, nome: 'Juliana Ferreira', email: 'juliana@exemplo.com' },
+    { id: 9, nome: 'Marcos Pereira', email: 'marcos@teste.com' },
+    { id: 10, nome: 'Carla Rodrigues', email: 'carla@exemplo.com' }
   ];
+
+  // Função para gerar próximo ID
+  const getNextId = () => {
+    return usuariosMock.length > 0 ? Math.max(...usuariosMock.map(u => u.id)) + 1 : 1;
+  };
 
   // ENDPOINTS
   
@@ -129,11 +142,24 @@ const start = async () => {
   }, async (request, reply) => {
     const { nome, email } = request.body as { nome: string; email: string };
     
+    // Verificar se email já existe
+    const emailExiste = usuariosMock.find(u => u.email === email);
+    if (emailExiste) {
+      return reply.status(400).send({
+        error: 'Bad Request',
+        message: 'Email já está em uso'
+      });
+    }
+    
+    // Criar novo usuário
     const novoUsuario = {
-      id: Math.floor(Math.random() * 1000) + 100,
+      id: getNextId(),
       nome,
       email
     };
+
+    // Adicionar à lista (simula inserção no banco)
+    usuariosMock.push(novoUsuario);
 
     return reply.status(201).send(novoUsuario);
   });
@@ -195,11 +221,35 @@ const start = async () => {
     const userId = parseInt(id);
     const updates = request.body as { nome?: string; email?: string };
     
+    // Encontrar usuário
+    const usuarioIndex = usuariosMock.findIndex(u => u.id === userId);
+    if (usuarioIndex === -1) {
+      return reply.status(404).send({
+        error: 'Not Found',
+        message: `Usuário com ID ${userId} não encontrado`
+      });
+    }
+
+    // Verificar se novo email já existe (se fornecido)
+    if (updates.email && updates.email !== usuariosMock[usuarioIndex].email) {
+      const emailExiste = usuariosMock.find(u => u.email === updates.email);
+      if (emailExiste) {
+        return reply.status(400).send({
+          error: 'Bad Request',
+          message: 'Email já está em uso'
+        });
+      }
+    }
+    
+    // Atualizar usuário
     const usuarioAtualizado = {
-      id: userId,
-      nome: updates.nome || 'Nome Atualizado',
-      email: updates.email || 'email@atualizado.com'
+      ...usuariosMock[usuarioIndex],
+      ...(updates.nome && { nome: updates.nome }),
+      ...(updates.email && { email: updates.email })
     };
+
+    // Salvar alterações
+    usuariosMock[usuarioIndex] = usuarioAtualizado;
 
     return usuarioAtualizado;
   });
@@ -232,6 +282,18 @@ const start = async () => {
     const { id } = request.params as { id: string };
     const userId = parseInt(id);
     
+    // Encontrar usuário
+    const usuarioIndex = usuariosMock.findIndex(u => u.id === userId);
+    if (usuarioIndex === -1) {
+      return reply.status(404).send({
+        error: 'Not Found',
+        message: `Usuário com ID ${userId} não encontrado`
+      });
+    }
+
+    // Remover usuário
+    usuariosMock.splice(usuarioIndex, 1);
+    
     return {
       message: `Usuário com ID ${userId} foi deletado com sucesso`,
       id: userId
@@ -243,213 +305,6 @@ const start = async () => {
     console.log('🚀 Servidor rodando em http://localhost:3333');
     console.log('📚 Swagger em http://localhost:3333/docs');
     console.log('📄 JSON em http://localhost:3333/docs/json');
-  } catch (error) {
-    console.error('❌ Erro:', error);
-    process.exit(1);
-  }
-};
-
-start();
-
-// Inicializar servidor
-const start = async () => {
-  // Criar instância do Fastify
-  const app = fastify({
-    logger: true
-  }).withTypeProvider<ZodTypeProvider>();
-
-  // Configurar compiladores do Zod
-  app.setValidatorCompiler(validatorCompiler);
-  app.setSerializerCompiler(serializerCompiler);
-
-  // Registrar CORS
-  await app.register(import('@fastify/cors'), {
-    origin: true
-  });
-
-  // Registrar Swagger ANTES dos endpoints
-  await app.register(fastifySwagger, {
-    swagger: {
-      info: {
-        title: 'API de Usuários',
-        description: 'API simples para gerenciar usuários',
-        version: '1.0.0'
-      },
-      host: 'localhost:3333',
-      schemes: ['http'],
-      consumes: ['application/json'],
-      produces: ['application/json'],
-      tags: [
-        {
-          name: 'Usuarios',
-          description: 'Operações com usuários'
-        }
-      ]
-    }
-  });
-
-  // Registrar Swagger UI
-  await app.register(fastifySwaggerUi, {
-    routePrefix: '/docs',
-    uiConfig: {
-      docExpansion: 'full',
-      deepLinking: true
-    }
-  });
-
-  // Schema do usuário
-  const usuarioSchema = z.object({
-    id: z.number(),
-    nome: z.string(),
-    email: z.string()
-  });
-
-  // Schema para criar usuário
-  const criarUsuarioSchema = z.object({
-    nome: z.string().min(2),
-    email: z.string().email()
-  });
-
-  // Dados mockados
-  const usuariosMock = [
-    { id: 1, nome: 'João', email: 'joao@teste.com' },
-    { id: 2, nome: 'Maria', email: 'maria@teste.com' }
-  ];
-
-  // ENDPOINTS
-  
-  // GET /usuarios
-  app.get('/usuarios', {
-    schema: {
-      summary: 'Listar usuários',
-      description: 'Retorna lista de usuários',
-      tags: ['Usuarios'],
-      response: {
-        200: z.object({
-          usuarios: z.array(usuarioSchema),
-          total: z.number()
-        })
-      }
-    }
-  }, async (request, reply) => {
-    return {
-      usuarios: usuariosMock,
-      total: usuariosMock.length
-    };
-  });
-
-  // POST /usuarios
-  app.post('/usuarios', {
-    schema: {
-      summary: 'Criar usuário',
-      description: 'Cria um novo usuário',
-      tags: ['Usuarios'],
-      body: criarUsuarioSchema,
-      response: {
-        201: usuarioSchema
-      }
-    }
-  }, async (request, reply) => {
-    const { nome, email } = request.body as { nome: string; email: string };
-    
-    const novoUsuario = {
-      id: Math.floor(Math.random() * 1000),
-      nome,
-      email
-    };
-
-    return reply.status(201).send(novoUsuario);
-  });
-
-  // GET /usuarios/:id
-  app.get('/usuarios/:id', {
-    schema: {
-      summary: 'Buscar usuário',
-      description: 'Busca usuário por ID',
-      tags: ['Usuarios'],
-      params: z.object({
-        id: z.string().transform(Number)
-      }),
-      response: {
-        200: usuarioSchema,
-        404: z.object({
-          error: z.string(),
-          message: z.string()
-        })
-      }
-    }
-  }, async (request, reply) => {
-    const { id } = request.params as { id: number };
-    const usuario = usuariosMock.find(u => u.id === id);
-    
-    if (!usuario) {
-      return reply.status(404).send({
-        error: 'Not Found',
-        message: `Usuário ${id} não encontrado`
-      });
-    }
-
-    return usuario;
-  });
-
-  // PUT /usuarios/:id
-  app.put('/usuarios/:id', {
-    schema: {
-      summary: 'Atualizar usuário',
-      description: 'Atualiza usuário existente',
-      tags: ['Usuarios'],
-      params: z.object({
-        id: z.string().transform(Number)
-      }),
-      body: z.object({
-        nome: z.string().optional(),
-        email: z.string().email().optional()
-      }),
-      response: {
-        200: usuarioSchema
-      }
-    }
-  }, async (request, reply) => {
-    const { id } = request.params as { id: number };
-    const updates = request.body as { nome?: string; email?: string };
-    
-    return {
-      id,
-      nome: updates.nome || 'Nome Atualizado',
-      email: updates.email || 'email@atualizado.com'
-    };
-  });
-
-  // DELETE /usuarios/:id
-  app.delete('/usuarios/:id', {
-    schema: {
-      summary: 'Deletar usuário',
-      description: 'Remove usuário do sistema',
-      tags: ['Usuarios'],
-      params: z.object({
-        id: z.string().transform(Number)
-      }),
-      response: {
-        200: z.object({
-          message: z.string(),
-          id: z.number()
-        })
-      }
-    }
-  }, async (request, reply) => {
-    const { id } = request.params as { id: number };
-    
-    return {
-      message: `Usuário ${id} deletado com sucesso`,
-      id
-    };
-  });
-
-  try {
-    await app.listen({ port: 3333, host: 'localhost' });
-    console.log('🚀 Servidor rodando em http://localhost:3333');
-    console.log('� Swagger em http://localhost:3333/docs');
-    console.log('� JSON em http://localhost:3333/docs/json');
   } catch (error) {
     console.error('❌ Erro:', error);
     process.exit(1);
