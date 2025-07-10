@@ -22,17 +22,58 @@ await app.register(import('@fastify/cors'), {
   origin: ['http://localhost:3000', 'http://localhost:5173'], // Adicione suas origens permitidas
   credentials: true
 });
+// Registrar Swagger para documentação da API
 app.register(fastifySwagger, {
   openapi: {
     info: {
-      title: 'Typed API',
-      description: 'API com tipagem estática usando Zod',
-      version: '1.0.0'
-    }
+      title: 'API Health Check - Fastify + Zod',
+      description: 'Documentação completa da API de Health Check com validação de schemas usando Zod e TypeScript',
+      version: '1.0.0',
+      contact: {
+        name: 'Desenvolvedor',
+        email: 'dev@exemplo.com'
+      },
+      license: {
+        name: 'ISC',
+        url: 'https://opensource.org/licenses/ISC'
+      }
+    },
+    servers: [
+      {
+        url: 'http://localhost:3333',
+        description: 'Servidor de desenvolvimento'
+      }
+    ],
+    tags: [
+      {
+        name: 'Root',
+        description: 'Endpoint principal da aplicação'
+      },
+      {
+        name: 'Health',
+        description: 'Endpoints para monitoramento de saúde do servidor'
+      },
+      {
+        name: 'Usuarios',
+        description: 'Endpoints para gerenciamento de usuários'
+      }
+    ]
   }
 });
+
+// Registrar Swagger UI
 app.register(fastifySwaggerUi, {
   routePrefix: '/docs',
+  uiConfig: {
+    docExpansion: 'list',
+    deepLinking: false
+  },
+  staticCSP: true,
+  transformStaticCSP: (header) => header,
+  transformSpecification: (swaggerObject, request, reply) => {
+    return swaggerObject;
+  },
+  transformSpecificationClone: true
 });
 // Schema de resposta para Health Check
 const healthResponseSchema = z.object({
@@ -126,6 +167,7 @@ app.get('/', {
         message: z.string(),
         api: z.string(),
         version: z.string(),
+        documentacao: z.string(),
         endpoints: z.array(z.string())
       })
     }
@@ -133,9 +175,85 @@ app.get('/', {
 }, async (request, reply) => {
   return reply.status(200).send({
     message: 'API está funcionando!',
-    api: 'Fastify Server',
+    api: 'Fastify Server com Swagger',
     version: '1.0.0',
-    endpoints: ['/health', '/status']
+    documentacao: '/docs',
+    endpoints: ['/health', '/status', '/usuarios', '/docs']
+  });
+});
+
+// Schema para exemplo de usuário
+const usuarioSchema = z.object({
+  id: z.number(),
+  nome: z.string(),
+  email: z.string().email(),
+  ativo: z.boolean()
+});
+
+const criarUsuarioSchema = z.object({
+  nome: z.string().min(2, 'Nome deve ter pelo menos 2 caracteres'),
+  email: z.string().email('Email deve ser válido'),
+  ativo: z.boolean().optional().default(true)
+});
+
+// Endpoint de exemplo para demonstrar Swagger
+app.post('/usuarios', {
+  schema: {
+    summary: 'Criar novo usuário',
+    description: 'Endpoint de exemplo para demonstrar validação com Zod e documentação Swagger',
+    tags: ['Usuarios'],
+    body: criarUsuarioSchema,
+    response: {
+      201: usuarioSchema,
+      400: z.object({
+        error: z.string(),
+        message: z.string(),
+        timestamp: z.string()
+      })
+    }
+  }
+}, async (request, reply) => {
+  const { nome, email, ativo = true } = request.body as {
+    nome: string;
+    email: string;
+    ativo?: boolean;
+  };
+  
+  // Simulando criação de usuário
+  const novoUsuario = {
+    id: Math.floor(Math.random() * 1000),
+    nome,
+    email,
+    ativo
+  };
+
+  return reply.status(201).send(novoUsuario);
+});
+
+// Endpoint para listar usuários
+app.get('/usuarios', {
+  schema: {
+    summary: 'Listar usuários',
+    description: 'Retorna uma lista de usuários cadastrados',
+    tags: ['Usuarios'],
+    response: {
+      200: z.object({
+        usuarios: z.array(usuarioSchema),
+        total: z.number()
+      })
+    }
+  }
+}, async (request, reply) => {
+  // Dados mockados para exemplo
+  const usuariosMock = [
+    { id: 1, nome: 'João Silva', email: 'joao@exemplo.com', ativo: true },
+    { id: 2, nome: 'Maria Santos', email: 'maria@exemplo.com', ativo: true },
+    { id: 3, nome: 'Pedro Costa', email: 'pedro@exemplo.com', ativo: false }
+  ];
+
+  return reply.status(200).send({
+    usuarios: usuariosMock,
+    total: usuariosMock.length
   });
 });
 
@@ -160,8 +278,9 @@ const start = async () => {
     
     console.log('🚀 Servidor HTTP rodando!');
     console.log(`📍 URL: http://${host}:${port}`);
+    console.log(`📚 Documentação Swagger: http://${host}:${port}/docs`);
     console.log(`🏥 Health Check: http://${host}:${port}/health`);
-    console.log(`📊 Status: http://${host}:${port}/status`);
+    console.log(`📊 Status Detalhado: http://${host}:${port}/status`);
     
   } catch (error) {
     app.log.error(error);

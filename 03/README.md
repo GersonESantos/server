@@ -1,6 +1,27 @@
-# 🚀 Fastify Health Check Server
+# 🚀 API Fastify com Documentação Swagger
 
-Um servidor HTTP moderno e robusto construído com **Fastify**, **TypeScript** e **Zod** para validação de schemas. Este projeto implementa um sistema completo de Health Check com monitoramento de métricas do sistema.
+Um servidor HTTP moderno e robusto construído com **Fastify**, **TypeScript**, **Zod** e **Swagger** para documentação automática. Este projeto implementa um sistema completo de Health Check com monitoramento de métricas do sistema e documentação interativa.
+
+## 📚 **Documentação Swagger Interativa**
+
+A API possui documentação automática e interativa acessível em:
+```
+🔗 http://localhost:3333/docs
+```
+
+### **Recursos da Documentação:**
+- ✅ **Try it out** - Testar endpoints diretamente na interface
+- ✅ **Schema visualization** - Visualização dos modelos de dados  
+- ✅ **Response examples** - Exemplos de respostas
+- ✅ **Error handling** - Documentação de erros
+- ✅ **Validação automática** - Schemas Zod integrados
+- ✅ **Type Safety** - Tipagem completa com TypeScript
+
+### **Configuração OpenAPI:**
+- **Título**: API Health Check - Fastify + Zod
+- **Descrição**: Documentação completa com validação usando Zod e TypeScript
+- **Versão**: 1.0.0
+- **Tags organizadas**: Root, Health, Usuarios
 
 ## 📋 Índice
 
@@ -15,6 +36,8 @@ Um servidor HTTP moderno e robusto construído com **Fastify**, **TypeScript** e
 - [Scripts Disponíveis](#-scripts-disponíveis)
 - [Como Foi Desenvolvido](#-como-foi-desenvolvido)
 - [Próximos Passos](#-próximos-passos)
+- [Documentação Swagger](#-documentação-swagger-interativa)
+- [Schemas de Validação](#-schemas-de-validação)
 
 ## ✨ Características
 
