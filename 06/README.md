@@ -1,0 +1,387 @@
+# API de Usuários - Estrutura Modular
+
+## ✅ Projeto Refatorado com Sucesso!
+
+Este projeto foi refatorado para separar as rotas em arquivos diferentes, seguindo as melhores práticas de organização de código.
+
+## � **Estrutura do Projeto**
+
+```
+C:\Repo2024\server\05\
+├── src/
+│   ├── server.ts       # Arquivo principal do servidor
+│   └── rotes.ts        # Rotas de usuários separadas
+├── package.json        # Dependências e scripts
+├── tsconfig.json       # Configuração TypeScript
+└── README.md          # Documentação
+```
+
+## 🎯 **Benefícios da Separação**
+
+### **1. Organização Melhorada**
+- ✅ **Código limpo**: Separação clara entre configuração do servidor e rotas
+- ✅ **Manutenibilidade**: Mais fácil de manter e modificar
+- ✅ **Escalabilidade**: Fácil adicionar novas rotas em novos arquivos
+
+### **2. Estrutura Modular**
+- ✅ **server.ts**: Configuração do Fastify, Swagger e plugins
+- ✅ **rotes.ts**: Todas as rotas de usuários (GET, POST, PUT, DELETE)
+- ✅ **Plugin pattern**: Usando o padrão de plugins do Fastify
+
+## 📋 **Arquivo server.ts**
+
+```typescript
+import fastify from 'fastify';
+import fastifySwagger from '@fastify/swagger';
+import fastifySwaggerUi from '@fastify/swagger-ui';
+import usuariosRoutes from './rotes.js';
+
+const start = async () => {
+  const app = fastify({ logger: true });
+  
+  // Registrar plugins
+  await app.register(import('@fastify/cors'));
+  await app.register(fastifySwagger, { /* config */ });
+  await app.register(fastifySwaggerUi, { /* config */ });
+  
+  // Registrar rotas
+  await app.register(usuariosRoutes);
+  
+  // Iniciar servidor
+  await app.listen({ port: 3333, host: 'localhost' });
+};
+```
+
+## 📋 **Arquivo rotes.ts**
+
+```typescript
+import { FastifyInstance, FastifyPluginAsync } from 'fastify';
+
+// Schemas, dados e lógica das rotas
+const usuariosRoutes: FastifyPluginAsync = async (fastify) => {
+  // GET /usuarios
+  fastify.get('/usuarios', { /* schema */ }, async () => { /* handler */ });
+  
+  // POST /usuarios
+  fastify.post('/usuarios', { /* schema */ }, async () => { /* handler */ });
+  
+  // GET /usuarios/:id
+  fastify.get('/usuarios/:id', { /* schema */ }, async () => { /* handler */ });
+  
+  // PUT /usuarios/:id
+  fastify.put('/usuarios/:id', { /* schema */ }, async () => { /* handler */ });
+  
+  // DELETE /usuarios/:id
+  fastify.delete('/usuarios/:id', { /* schema */ }, async () => { /* handler */ });
+};
+
+export default usuariosRoutes;
+```
+
+## 🚀 **Como Executar**
+
+```bash
+# Instalar dependências
+npm install
+
+# Executar em modo desenvolvimento
+npm run dev
+
+# Acessar a aplicação
+http://localhost:3333
+
+# Acessar documentação Swagger
+http://localhost:3333/docs
+```
+
+## 📦 **Funcionalidades Mantidas**
+
+- ✅ **CRUD completo**: Todos os 5 endpoints funcionando
+- ✅ **Swagger UI**: Documentação interativa em `/docs`
+- ✅ **10 usuários**: Dados mockados com 10 usuários
+- ✅ **Validação**: Schemas JSON Schema puros
+- ✅ **Tratamento de erros**: Respostas adequadas para cada situação
+
+## � **Próximos Passos**
+
+Para expandir ainda mais a organização, você pode:
+
+1. **Separar schemas**: Criar arquivo `schemas.ts`
+2. **Separar dados**: Criar arquivo `database.ts` ou `models.ts`
+3. **Separar controllers**: Criar arquivo `controllers.ts`
+4. **Adicionar middleware**: Criar arquivo `middleware.ts`
+
+## � **Resultado Final**
+
+- **Servidor funcionando**: ✅ `http://localhost:3333`
+- **Swagger UI**: ✅ `http://localhost:3333/docs`
+- **Rotas separadas**: ✅ Código mais organizado
+- **Manutenibilidade**: ✅ Fácil de expandir e modificar
+
+**Status**: ✅ **REFATORAÇÃO CONCLUÍDA COM SUCESSO!**
+- 🔄 **Graceful Shutdown**: Encerramento seguro do servidor
+- 🔧 **Hot Reload**: Desenvolvimento com recarregamento automático
+
+## 🛠 Tecnologias Utilizadas
+
+- **[Fastify](https://fastify.dev/)** - Framework web rápido e eficiente
+- **[TypeScript](https://www.typescriptlang.org/)** - Superset tipado do JavaScript
+- **[Zod](https://zod.dev/)** - Validação de schemas TypeScript-first
+- **[fastify-type-provider-zod](https://github.com/turkerdev/fastify-type-provider-zod)** - Integração Fastify + Zod
+- **[@fastify/cors](https://github.com/fastify/fastify-cors)** - Plugin de CORS para Fastify
+- **[tsx](https://github.com/esbuild-kit/tsx)** - Executor TypeScript com hot reload
+
+## 📋 Pré-requisitos
+
+- **Node.js** versão 18 ou superior
+- **npm** ou **yarn**
+
+## 🚀 Instalação
+
+1. **Clone o repositório**
+```bash
+git clone <url-do-repositorio>
+cd server/01
+```
+
+2. **Instale as dependências**
+```bash
+npm install
+```
+
+### 📦 Comandos para Instalação de Dependências
+
+#### **Instalar todas de uma vez:**
+```bash
+npm install
+```
+
+#### **Dependências de Produção:**
+```bash
+npm install fastify @fastify/cors zod fastify-type-provider-zod
+```
+
+#### **Dependências de Desenvolvimento:**
+```bash
+npm install -D typescript @types/node tsx @biomejs/biome
+```
+
+#### **Comando completo em uma linha:**
+```bash
+npm install fastify @fastify/cors zod fastify-type-provider-zod && npm install -D typescript @types/node tsx @biomejs/biome
+```
+
+#### **Para projetos novos (do zero):**
+```bash
+# Inicializar projeto
+npm init -y
+
+# Instalar todas as dependências
+npm install fastify @fastify/cors zod fastify-type-provider-zod
+npm install -D typescript @types/node tsx @biomejs/biome
+
+# Criar configuração TypeScript
+npx tsc --init
+```
+
+3. **Configure as variáveis de ambiente**
+```bash
+# Copie o arquivo de exemplo
+cp .env.example .env
+
+# Edite as configurações conforme necessário
+```
+
+## ▶️ Como Executar
+
+### Modo Desenvolvimento (Recomendado)
+```bash
+npm run dev
+```
+
+### Modo Produção
+```bash
+# Build do projeto
+npm run build
+
+# Executar em produção
+npm start
+```
+
+### Executar diretamente com tsx
+```bash
+npx tsx watch src/server.ts
+```
+
+### Comandos NPX Úteis
+```bash
+# Executar TypeScript diretamente (sem build)
+npx tsx src/server.ts
+
+# Executar com watch mode (recarrega automaticamente)
+npx tsx watch src/server.ts
+
+# Inicializar configuração TypeScript
+npx tsc --init
+
+# Compilar TypeScript manualmente
+npx tsc
+
+# Verificar versões dos pacotes
+npx npm-check-updates
+
+# Executar linter/formatter
+npx biome check src/
+npx biome format src/
+```
+
+## 🎯 Endpoints Disponíveis
+
+### **GET /** 
+Rota principal da API
+```json
+{
+  "message": "API está funcionando!",
+  "api": "Fastify Server",
+  "version": "1.0.0",
+  "endpoints": ["/health", "/status"]
+}
+```
+
+### **GET /health**
+Health Check básico
+```json
+{
+  "status": "ok",
+  "timestamp": "2025-07-08T10:30:00.000Z",
+  "uptime": 123.456,
+  "environment": "development",
+  "version": "1.0.0"
+}
+```
+
+### **GET /status**
+Status detalhado com métricas do sistema
+```json
+{
+  "status": "ok",
+  "timestamp": "2025-07-08T10:30:00.000Z",
+  "uptime": 123.456,
+  "memory": {
+    "used": 45678912,
+    "total": 134217728,
+    "percentage": 34
+  },
+  "cpu": {
+    "usage": 0.0234
+  },
+  "environment": "development",
+  "version": "1.0.0",
+  "nodeVersion": "v20.10.0"
+}
+```
+
+## 📁 Estrutura do Projeto
+
+```
+01/
+├── src/
+│   └── server.ts          # Arquivo principal do servidor
+├── dist/                  # Arquivos compilados (gerado pelo build)
+├── .env                   # Variáveis de ambiente
+├── package.json           # Dependências e scripts
+├── tsconfig.json          # Configuração do TypeScript
+└── README.md             # Este arquivo
+```
+
+## ⚙️ Configuração
+
+### Variáveis de Ambiente (.env)
+
+```env
+# Configurações do servidor
+PORT=3333
+HOST=localhost
+NODE_ENV=development
+
+# Configurações de CORS
+CORS_ORIGIN=http://localhost:3000,http://localhost:5173
+```
+
+### Scripts Disponíveis
+
+- `npm run dev` - Executa em modo desenvolvimento com hot reload
+- `npm run build` - Compila o TypeScript para JavaScript
+- `npm start` - Executa a versão compilada em produção
+- `npm test` - Executa os testes (a implementar)
+
+## 🔨 Como Foi Desenvolvido
+
+### 1. **Configuração Inicial**
+- Setup do projeto com TypeScript e ESM modules
+- Configuração do tsconfig.json para módulos ES
+- Instalação das dependências base (Fastify, Zod, TypeScript)
+
+### 2. **Estrutura do Servidor**
+- Criação da instância Fastify com logger habilitado
+- Configuração do ZodTypeProvider para type safety
+- Setup dos compiladores de validação e serialização
+
+### 3. **Implementação dos Endpoints**
+- **Rota raiz (/)**: Informações básicas da API
+- **Health Check (/health)**: Verificação básica de saúde
+- **Status (/status)**: Métricas detalhadas do sistema
+
+### 4. **Funcionalidades Avançadas**
+- **CORS**: Configurado para múltiplas origens
+- **Error Handling**: Tratamento global de erros
+- **Graceful Shutdown**: Encerramento seguro com sinais SIGTERM/SIGINT
+- **Métricas**: Coleta de dados de CPU, memória e uptime
+
+### 5. **Validação e Type Safety**
+- Schemas Zod para todas as respostas
+- Tipagem completa com TypeScript
+- Validação automática de requests/responses
+
+### 6. **DevOps e Produção**
+- Scripts para desenvolvimento e produção
+- Configuração de variáveis de ambiente
+- Hot reload para desenvolvimento
+
+## 🔄 Próximos Passos
+
+- [ ] Implementar testes unitários e de integração
+- [ ] Adicionar documentação Swagger/OpenAPI
+- [ ] Implementar middleware de rate limiting
+- [ ] Adicionar autenticação JWT
+- [ ] Configurar Docker e Docker Compose
+- [ ] Implementar métricas com Prometheus
+- [ ] Adicionar logs estruturados
+- [ ] Setup de CI/CD
+
+## 🐛 Solução de Problemas
+
+### Erro: "address already in use"
+```bash
+# Verificar qual processo está usando a porta
+netstat -ano | findstr :3333
+
+# Matar o processo (substitua PID pelo número encontrado)
+taskkill /PID <PID> /F
+
+# Ou mudar a porta no arquivo .env
+PORT=3334
+```
+
+## 📝 Licença
+
+Este projeto está sob a licença ISC.
+
+---
+
+**Desenvolvido com ❤️ usando Fastify + TypeScript + Zod**
+URLs disponíveis:
+API: http://localhost:3333
+Swagger: http://localhost:3333/docs
+Health: http://localhost:3333/health
+Status: http://localhost:3333/status
