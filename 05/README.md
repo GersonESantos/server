@@ -1,53 +1,124 @@
-# 🚀 API Fastify com Documentação Swagger
+# API de Usuários - Estrutura Modular
 
-Um servidor HTTP moderno e robusto construído com **Fastify**, **TypeScript**, **Zod** e **Swagger** para documentação automática. Este projeto implementa um sistema completo de Health Check com monitoramento de métricas do sistema e documentação interativa.
+## ✅ Projeto Refatorado com Sucesso!
 
-## 📚 **Documentação Swagger Interativa**
+Este projeto foi refatorado para separar as rotas em arquivos diferentes, seguindo as melhores práticas de organização de código.
 
-A API possui documentação automática e interativa acessível em:
+## � **Estrutura do Projeto**
+
 ```
-🔗 http://localhost:3333/docs
+C:\Repo2024\server\05\
+├── src/
+│   ├── server.ts       # Arquivo principal do servidor
+│   └── rotes.ts        # Rotas de usuários separadas
+├── package.json        # Dependências e scripts
+├── tsconfig.json       # Configuração TypeScript
+└── README.md          # Documentação
 ```
 
-### **Recursos da Documentação:**
-- ✅ **Try it out** - Testar endpoints diretamente na interface
-- ✅ **Schema visualization** - Visualização dos modelos de dados  
-- ✅ **Response examples** - Exemplos de respostas
-- ✅ **Error handling** - Documentação de erros
-- ✅ **Validação automática** - Schemas Zod integrados
-- ✅ **Type Safety** - Tipagem completa com TypeScript
+## 🎯 **Benefícios da Separação**
 
-### **Configuração OpenAPI:**
-- **Título**: API Health Check - Fastify + Zod
-- **Descrição**: Documentação completa com validação usando Zod e TypeScript
-- **Versão**: 1.0.0
-- **Tags organizadas**: Root, Health, Usuarios
+### **1. Organização Melhorada**
+- ✅ **Código limpo**: Separação clara entre configuração do servidor e rotas
+- ✅ **Manutenibilidade**: Mais fácil de manter e modificar
+- ✅ **Escalabilidade**: Fácil adicionar novas rotas em novos arquivos
 
-## 📋 Índice
+### **2. Estrutura Modular**
+- ✅ **server.ts**: Configuração do Fastify, Swagger e plugins
+- ✅ **rotes.ts**: Todas as rotas de usuários (GET, POST, PUT, DELETE)
+- ✅ **Plugin pattern**: Usando o padrão de plugins do Fastify
 
-- [Características](#-características)
-- [Tecnologias Utilizadas](#-tecnologias-utilizadas)
-- [Pré-requisitos](#-pré-requisitos)
-- [Instalação](#-instalação)
-- [Como Executar](#-como-executar)
-- [Endpoints Disponíveis](#-endpoints-disponíveis)
-- [Estrutura do Projeto](#-estrutura-do-projeto)
-- [Configuração](#-configuração)
-- [Scripts Disponíveis](#-scripts-disponíveis)
-- [Como Foi Desenvolvido](#-como-foi-desenvolvido)
-- [Próximos Passos](#-próximos-passos)
-- [Documentação Swagger](#-documentação-swagger-interativa)
-- [Schemas de Validação](#-schemas-de-validação)
+## 📋 **Arquivo server.ts**
 
-## ✨ Características
+```typescript
+import fastify from 'fastify';
+import fastifySwagger from '@fastify/swagger';
+import fastifySwaggerUi from '@fastify/swagger-ui';
+import usuariosRoutes from './rotes.js';
 
-- ⚡ **Performance**: Utiliza Fastify, um dos frameworks Node.js mais rápidos
-- 🔒 **Type Safety**: Totalmente tipado com TypeScript e validação com Zod
-- 🏥 **Health Check**: Endpoints dedicados para monitoramento de saúde
-- 📊 **Métricas**: Coleta de métricas de CPU, memória e uptime
-- 🌐 **CORS**: Configurado para desenvolvimento e produção
-- 📝 **Logs**: Sistema de logging integrado
-- 🛡️ **Error Handling**: Tratamento global de erros
+const start = async () => {
+  const app = fastify({ logger: true });
+  
+  // Registrar plugins
+  await app.register(import('@fastify/cors'));
+  await app.register(fastifySwagger, { /* config */ });
+  await app.register(fastifySwaggerUi, { /* config */ });
+  
+  // Registrar rotas
+  await app.register(usuariosRoutes);
+  
+  // Iniciar servidor
+  await app.listen({ port: 3333, host: 'localhost' });
+};
+```
+
+## 📋 **Arquivo rotes.ts**
+
+```typescript
+import { FastifyInstance, FastifyPluginAsync } from 'fastify';
+
+// Schemas, dados e lógica das rotas
+const usuariosRoutes: FastifyPluginAsync = async (fastify) => {
+  // GET /usuarios
+  fastify.get('/usuarios', { /* schema */ }, async () => { /* handler */ });
+  
+  // POST /usuarios
+  fastify.post('/usuarios', { /* schema */ }, async () => { /* handler */ });
+  
+  // GET /usuarios/:id
+  fastify.get('/usuarios/:id', { /* schema */ }, async () => { /* handler */ });
+  
+  // PUT /usuarios/:id
+  fastify.put('/usuarios/:id', { /* schema */ }, async () => { /* handler */ });
+  
+  // DELETE /usuarios/:id
+  fastify.delete('/usuarios/:id', { /* schema */ }, async () => { /* handler */ });
+};
+
+export default usuariosRoutes;
+```
+
+## 🚀 **Como Executar**
+
+```bash
+# Instalar dependências
+npm install
+
+# Executar em modo desenvolvimento
+npm run dev
+
+# Acessar a aplicação
+http://localhost:3333
+
+# Acessar documentação Swagger
+http://localhost:3333/docs
+```
+
+## 📦 **Funcionalidades Mantidas**
+
+- ✅ **CRUD completo**: Todos os 5 endpoints funcionando
+- ✅ **Swagger UI**: Documentação interativa em `/docs`
+- ✅ **10 usuários**: Dados mockados com 10 usuários
+- ✅ **Validação**: Schemas JSON Schema puros
+- ✅ **Tratamento de erros**: Respostas adequadas para cada situação
+
+## � **Próximos Passos**
+
+Para expandir ainda mais a organização, você pode:
+
+1. **Separar schemas**: Criar arquivo `schemas.ts`
+2. **Separar dados**: Criar arquivo `database.ts` ou `models.ts`
+3. **Separar controllers**: Criar arquivo `controllers.ts`
+4. **Adicionar middleware**: Criar arquivo `middleware.ts`
+
+## � **Resultado Final**
+
+- **Servidor funcionando**: ✅ `http://localhost:3333`
+- **Swagger UI**: ✅ `http://localhost:3333/docs`
+- **Rotas separadas**: ✅ Código mais organizado
+- **Manutenibilidade**: ✅ Fácil de expandir e modificar
+
+**Status**: ✅ **REFATORAÇÃO CONCLUÍDA COM SUCESSO!**
 - 🔄 **Graceful Shutdown**: Encerramento seguro do servidor
 - 🔧 **Hot Reload**: Desenvolvimento com recarregamento automático
 
