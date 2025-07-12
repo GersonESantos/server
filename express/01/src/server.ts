@@ -102,6 +102,33 @@ const errorResponseSchema = z.object({
   timestamp: z.string()
 });
 
+// Schemas para MySQL
+const userSchema = z.object({
+  id: z.number(),
+  name: z.string(),
+  email: z.string().email(),
+  created_at: z.string(),
+  updated_at: z.string()
+});
+
+const taskSchema = z.object({
+  id: z.number(),
+  title: z.string(),
+  description: z.string().optional(),
+  status: z.string(),
+  id_user: z.number(),
+  created_at: z.string(),
+  updated_at: z.string()
+});
+
+const connectionStatusSchema = z.object({
+  message: z.string()
+});
+
+const usersCountSchema = z.object({
+  users: z.number()
+});
+
 // Configuração do Swagger
 const swaggerOptions = {
   definition: {
@@ -137,6 +164,14 @@ const swaggerOptions = {
       {
         name: 'Usuarios',
         description: 'Endpoints para gerenciamento de usuários'
+      },
+      {
+        name: 'Database',
+        description: 'Endpoints para operações com banco de dados MySQL'
+      },
+      {
+        name: 'Authentication',
+        description: 'Endpoints para autenticação e login'
       }
     ],
     components: {
@@ -147,7 +182,11 @@ const swaggerOptions = {
         Usuario: zodToJsonSchema(usuarioSchema),
         CriarUsuario: zodToJsonSchema(criarUsuarioSchema),
         UsuariosResponse: zodToJsonSchema(usuariosResponseSchema),
-        ErrorResponse: zodToJsonSchema(errorResponseSchema)
+        ErrorResponse: zodToJsonSchema(errorResponseSchema),
+        User: zodToJsonSchema(userSchema),
+        Task: zodToJsonSchema(taskSchema),
+        ConnectionStatus: zodToJsonSchema(connectionStatusSchema),
+        UsersCount: zodToJsonSchema(usersCountSchema)
       }
     }
   },
@@ -196,10 +235,10 @@ app.get('/docs.json', (req: express.Request, res: express.Response) => {
 
 /**
  * @swagger
- * /:
+ * /api:
  *   get:
- *     summary: Rota raiz
- *     description: Endpoint principal da API
+ *     summary: Informações da API
+ *     description: Endpoint com informações gerais da API
  *     tags: [Root]
  *     responses:
  *       200:
@@ -209,13 +248,13 @@ app.get('/docs.json', (req: express.Request, res: express.Response) => {
  *             schema:
  *               $ref: '#/components/schemas/RootResponse'
  */
-app.get('/', (req: express.Request, res: express.Response) => {
+app.get('/api', (req: express.Request, res: express.Response) => {
   const response = {
     message: 'API está funcionando!',
     api: 'Express Server com Swagger',
     version: '1.0.0',
     documentacao: '/docs',
-    endpoints: ['/health', '/status', '/usuarios', '/docs']
+    endpoints: ['/health', '/status', '/usuarios', '/user', '/login', '/docs']
   };
 
   // Validar resposta
@@ -374,6 +413,194 @@ app.post('/usuarios', validateBody(criarUsuarioSchema), (req: express.Request, r
   res.status(201).json(validatedResponse);
 });
 
+// rotas MySQL
+// ----------------------------------------
+/**
+ * @swagger
+ * /:
+ *   get:
+ *     summary: Teste de conexão MySQL
+ *     description: Verifica se a conexão com o banco MySQL está funcionando
+ *     tags: [Database]
+ *     responses:
+ *       200:
+ *         description: Status da conexão MySQL
+ *         content:
+ *           text/plain:
+ *             schema:
+ *               type: string
+ *               enum: ['MySQL connection OK.', 'MySQL connection error.']
+ */
+app.get("/", (req, res) => {
+    connection.query("SELECT COUNT(*) users FROM users", (err, results) => {
+        if (err) {
+            res.send('MySQL connection error.');
+        }
+        res.send('MySQL connection OK.');
+    })
+});
+
+/**
+ * @swagger
+ * /user:
+ *   get:
+ *     summary: Listar todos os usuários
+ *     description: Retorna lista completa de usuários do banco de dados
+ *     tags: [Database]
+ *     responses:
+ *       200:
+ *         description: Lista de usuários
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/User'
+ *       500:
+ *         description: Erro de conexão MySQL
+ *         content:
+ *           text/plain:
+ *             schema:
+ *               type: string
+ *               example: 'MySQL connection error.'
+ */
+app.get("/user", (req, res) => {
+    connection.query("SELECT * FROM users", (err, results) => {
+        if (err) {
+            res.status(500).send('MySQL connection error.');
+        } else {
+            res.json(results);
+        }
+    });
+});
+
+/**
+ * @swagger
+ * /user/{id}:
+ *   get:
+ *     summary: Buscar usuário por ID
+ *     description: Retorna um usuário específico pelo ID
+ *     tags: [Database]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: ID do usuário
+ *     responses:
+ *       200:
+ *         description: Dados do usuário
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/User'
+ *       500:
+ *         description: Erro de conexão MySQL
+ *         content:
+ *           text/plain:
+ *             schema:
+ *               type: string
+ *               example: 'MySQL connection error.'
+ */
+app.get("/user/:id", (req, res) => {
+    connection.query("SELECT * FROM users WHERE id = ?", [req.params.id], (err, results) => {
+        if (err) {
+            res.send('MySQL connection error.');
+        }
+        res.json(results);
+    })
+});
+
+/**
+ * @swagger
+ * /user/{id}/tasks:
+ *   get:
+ *     summary: Listar tarefas de um usuário
+ *     description: Retorna todas as tarefas associadas a um usuário específico
+ *     tags: [Database]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: ID do usuário
+ *     responses:
+ *       200:
+ *         description: Lista de tarefas do usuário
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/Task'
+ *       500:
+ *         description: Erro de conexão MySQL
+ *         content:
+ *           text/plain:
+ *             schema:
+ *               type: string
+ *               example: 'MySQL connection error.'
+ */
+app.get("/user/:id/tasks/", (req, res) => {
+    connection.query("SELECT * FROM tasks WHERE id_user = ?", [req.params.id], (err, results) => {
+        if (err) {
+            res.send('MySQL connection error.');
+        }
+        res.json(results);
+    })
+});
+
+/**
+ * @swagger
+ * /login:
+ *   get:
+ *     summary: Login por email
+ *     description: Busca usuário por email para autenticação
+ *     tags: [Authentication]
+ *     parameters:
+ *       - in: query
+ *         name: email
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: email
+ *         description: Email do usuário
+ *         example: 'user@example.com'
+ *     responses:
+ *       200:
+ *         description: Dados do usuário encontrado
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/User'
+ *       500:
+ *         description: Erro de conexão MySQL
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: string
+ *                   example: 'MySQL connection error.'
+ */
+app.get("/login", (req, res) => {
+    const email = req.query.email;
+    connection.query("SELECT * FROM users WHERE email = ?", [email], (err, results) => {
+        if (err) {
+            res.status(500).send('MySQL connection error.');
+        } else {
+            res.json(results);
+        }
+    });
+});
+
 // Middleware de tratamento de erros
 app.use((error: Error, req: express.Request, res: express.Response, next: express.NextFunction) => {
   console.error('❌ Erro:', error);
@@ -392,62 +619,6 @@ app.use('*', (req: express.Request, res: express.Response) => {
     message: `Rota ${req.originalUrl} não encontrada`,
     timestamp: new Date().toISOString()
   });
-});
-// rotas
-// ----------------------------------------
-app.get("/", (req, res) => {
-    connection.query("SELECT COUNT(*) users FROM users", (err, results) => {
-        if (err) {
-            res.send('MySQL connection error.');
-        }
-        res.send('MySQL connection OK.');
-    })
-});
-
-// ...existing code...
-
-// Rota para listar todos os usuários
-app.get("/user", (req, res) => {
-    connection.query("SELECT * FROM users", (err, results) => {
-        if (err) {
-            res.status(500).send('MySQL connection error.');
-        } else {
-            res.json(results);
-        }
-    });
-});
-
-// ...existing code...
-
-// ----------------------------------------
-app.get("/user/:id", (req, res) => {
-    connection.query("SELECT * FROM users WHERE id = ?", [req.params.id], (err, results) => {
-        if (err) {
-            res.send('MySQL connection error.');
-        }
-        res.json(results);
-    })
-});
-
-// ----------------------------------------
-app.get("/user/:id/tasks/", (req, res) => {
-    connection.query("SELECT * FROM tasks WHERE id_user = ?", [req.params.id], (err, results) => {
-        if (err) {
-            res.send('MySQL connection error.');
-        }
-        res.json(results);
-    })
-});
-// Nova rota para login por email
-app.get("/login", (req, res) => {
-    const email = req.query.email;
-    connection.query("SELECT * FROM users WHERE email = ?", [email], (err, results) => {
-        if (err) {
-            res.status(500).send('MySQL connection error.');
-        } else {
-            res.json(results);
-        }
-    });
 });
 // Inicializar servidor
 const start = async () => {
