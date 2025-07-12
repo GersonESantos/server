@@ -155,6 +155,31 @@ const messageResponseSchema = z.object({
   id: z.number().optional()
 });
 
+// Schemas para operações CRUD de tasks
+const createTaskSchema = z.object({
+  title: z.string().min(2, 'Título deve ter pelo menos 2 caracteres'),
+  description: z.string().optional(),
+  status: z.string().min(1, 'Status é obrigatório'),
+  id_user: z.number().positive('ID do usuário deve ser um número positivo')
+});
+
+const updateTaskSchema = z.object({
+  title: z.string().min(2, 'Título deve ter pelo menos 2 caracteres').optional(),
+  description: z.string().optional(),
+  status: z.string().min(1, 'Status é obrigatório').optional(),
+  id_user: z.number().positive('ID do usuário deve ser um número positivo').optional()
+});
+
+const taskResponseSchema = z.object({
+  id: z.number(),
+  title: z.string(),
+  description: z.string().optional(),
+  status: z.string(),
+  id_user: z.number(),
+  created_at: z.string(),
+  updated_at: z.string()
+});
+
 // Configuração do Swagger
 const swaggerOptions = {
   definition: {
@@ -198,6 +223,10 @@ const swaggerOptions = {
       {
         name: 'Authentication',
         description: 'Endpoints para autenticação e login'
+      },
+      {
+        name: 'Tasks',
+        description: 'Endpoints para gerenciamento de tarefas'
       }
     ],
     components: {
@@ -216,7 +245,10 @@ const swaggerOptions = {
         CreateUser: zodToJsonSchema(createUserSchema),
         UpdateUser: zodToJsonSchema(updateUserSchema),
         UserResponse: zodToJsonSchema(userResponseSchema),
-        MessageResponse: zodToJsonSchema(messageResponseSchema)
+        MessageResponse: zodToJsonSchema(messageResponseSchema),
+        CreateTask: zodToJsonSchema(createTaskSchema),
+        UpdateTask: zodToJsonSchema(updateTaskSchema),
+        TaskResponse: zodToJsonSchema(taskResponseSchema)
       }
     }
   },
@@ -284,7 +316,7 @@ app.get('/api', (req: express.Request, res: express.Response) => {
     api: 'Express Server com Swagger',
     version: '1.0.0',
     documentacao: '/docs',
-    endpoints: ['/health', '/status', '/usuarios', '/user', '/login', '/docs']
+    endpoints: ['/health', '/status', '/usuarios', '/user', '/tasks', '/login', '/docs']
   };
 
   // Validar resposta
@@ -902,6 +934,366 @@ app.get("/user/:id/tasks/", (req, res) => {
 app.get("/login", (req, res) => {
     const email = req.query.email;
     connection.query("SELECT * FROM users WHERE email = ?", [email], (err, results) => {
+        if (err) {
+            res.status(500).send('MySQL connection error.');
+        } else {
+            res.json(results);
+        }
+    });
+});
+
+// Rotas CRUD para Tasks
+// ----------------------------------------
+/**
+ * @swagger
+ * /tasks:
+ *   get:
+ *     summary: Listar todas as tarefas
+ *     description: Retorna lista completa de tarefas do banco de dados
+ *     tags: [Tasks]
+ *     responses:
+ *       200:
+ *         description: Lista de tarefas
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/Task'
+ *       500:
+ *         description: Erro de conexão MySQL
+ *         content:
+ *           text/plain:
+ *             schema:
+ *               type: string
+ *               example: 'MySQL connection error.'
+ */
+app.get("/tasks", (req, res) => {
+    connection.query("SELECT * FROM tasks", (err, results) => {
+        if (err) {
+            res.status(500).send('MySQL connection error.');
+        } else {
+            res.json(results);
+        }
+    });
+});
+
+/**
+ * @swagger
+ * /tasks:
+ *   post:
+ *     summary: Criar nova tarefa
+ *     description: Cria uma nova tarefa no banco de dados
+ *     tags: [Tasks]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/CreateTask'
+ *     responses:
+ *       201:
+ *         description: Tarefa criada com sucesso
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/MessageResponse'
+ *       400:
+ *         description: Erro de validação
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ *       500:
+ *         description: Erro de conexão MySQL
+ *         content:
+ *           text/plain:
+ *             schema:
+ *               type: string
+ *               example: 'MySQL connection error.'
+ */
+app.post("/tasks", validateBody(createTaskSchema), (req, res) => {
+    const { title, description, status, id_user } = req.body;
+    const query = "INSERT INTO tasks (title, description, status, id_user, created_at, updated_at) VALUES (?, ?, ?, ?, NOW(), NOW())";
+    
+    connection.query(query, [title, description || null, status, id_user], (err, results: any) => {
+        if (err) {
+            res.status(500).send('MySQL connection error.');
+        } else {
+            res.status(201).json({
+                message: 'Tarefa criada com sucesso',
+                id: results.insertId
+            });
+        }
+    });
+});
+
+/**
+ * @swagger
+ * /tasks:
+ *   put:
+ *     summary: Atualizar tarefa completa
+ *     description: Atualiza todos os campos de uma tarefa (requer todos os campos)
+ *     tags: [Tasks]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             allOf:
+ *               - $ref: '#/components/schemas/CreateTask'
+ *               - type: object
+ *                 properties:
+ *                   id:
+ *                     type: integer
+ *                     description: ID da tarefa
+ *                 required: [id]
+ *     responses:
+ *       200:
+ *         description: Tarefa atualizada com sucesso
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/MessageResponse'
+ *       400:
+ *         description: Erro de validação
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ *       404:
+ *         description: Tarefa não encontrada
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/MessageResponse'
+ *       500:
+ *         description: Erro de conexão MySQL
+ *         content:
+ *           text/plain:
+ *             schema:
+ *               type: string
+ *               example: 'MySQL connection error.'
+ */
+app.put("/tasks", validateBody(createTaskSchema.extend({ id: z.number() })), (req, res) => {
+    const { id, title, description, status, id_user } = req.body;
+    const query = "UPDATE tasks SET title = ?, description = ?, status = ?, id_user = ?, updated_at = NOW() WHERE id = ?";
+    
+    connection.query(query, [title, description || null, status, id_user, id], (err, results: any) => {
+        if (err) {
+            res.status(500).send('MySQL connection error.');
+        } else if (results.affectedRows === 0) {
+            res.status(404).json({
+                message: 'Tarefa não encontrada'
+            });
+        } else {
+            res.json({
+                message: 'Tarefa atualizada com sucesso',
+                id: id
+            });
+        }
+    });
+});
+
+/**
+ * @swagger
+ * /tasks:
+ *   patch:
+ *     summary: Atualizar tarefa parcial
+ *     description: Atualiza campos específicos de uma tarefa (campos opcionais)
+ *     tags: [Tasks]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             allOf:
+ *               - $ref: '#/components/schemas/UpdateTask'
+ *               - type: object
+ *                 properties:
+ *                   id:
+ *                     type: integer
+ *                     description: ID da tarefa
+ *                 required: [id]
+ *     responses:
+ *       200:
+ *         description: Tarefa atualizada com sucesso
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/MessageResponse'
+ *       400:
+ *         description: Erro de validação
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ *       404:
+ *         description: Tarefa não encontrada
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/MessageResponse'
+ *       500:
+ *         description: Erro de conexão MySQL
+ *         content:
+ *           text/plain:
+ *             schema:
+ *               type: string
+ *               example: 'MySQL connection error.'
+ */
+app.patch("/tasks", validateBody(updateTaskSchema.extend({ id: z.number() })), (req, res) => {
+    const { id, title, description, status, id_user } = req.body;
+    
+    // Construir query dinâmica baseada nos campos fornecidos
+    const updates = [];
+    const values = [];
+    
+    if (title !== undefined) {
+        updates.push("title = ?");
+        values.push(title);
+    }
+    if (description !== undefined) {
+        updates.push("description = ?");
+        values.push(description);
+    }
+    if (status !== undefined) {
+        updates.push("status = ?");
+        values.push(status);
+    }
+    if (id_user !== undefined) {
+        updates.push("id_user = ?");
+        values.push(id_user);
+    }
+    
+    if (updates.length === 0) {
+        res.status(400).json({
+            error: 'Validation Error',
+            message: 'Pelo menos um campo deve ser fornecido para atualização',
+            timestamp: new Date().toISOString()
+        });
+        return;
+    }
+    
+    updates.push("updated_at = NOW()");
+    values.push(id);
+    
+    const query = `UPDATE tasks SET ${updates.join(', ')} WHERE id = ?`;
+    
+    connection.query(query, values, (err, results: any) => {
+        if (err) {
+            res.status(500).send('MySQL connection error.');
+        } else if (results.affectedRows === 0) {
+            res.status(404).json({
+                message: 'Tarefa não encontrada'
+            });
+        } else {
+            res.json({
+                message: 'Tarefa atualizada com sucesso',
+                id: id
+            });
+        }
+    });
+});
+
+/**
+ * @swagger
+ * /tasks:
+ *   delete:
+ *     summary: Deletar tarefa
+ *     description: Remove uma tarefa do banco de dados
+ *     tags: [Tasks]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               id:
+ *                 type: integer
+ *                 description: ID da tarefa
+ *             required: [id]
+ *     responses:
+ *       200:
+ *         description: Tarefa deletada com sucesso
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/MessageResponse'
+ *       400:
+ *         description: Erro de validação
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ *       404:
+ *         description: Tarefa não encontrada
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/MessageResponse'
+ *       500:
+ *         description: Erro de conexão MySQL
+ *         content:
+ *           text/plain:
+ *             schema:
+ *               type: string
+ *               example: 'MySQL connection error.'
+ */
+app.delete("/tasks", validateBody(z.object({ id: z.number() })), (req, res) => {
+    const { id } = req.body;
+    const query = "DELETE FROM tasks WHERE id = ?";
+    
+    connection.query(query, [id], (err, results: any) => {
+        if (err) {
+            res.status(500).send('MySQL connection error.');
+        } else if (results.affectedRows === 0) {
+            res.status(404).json({
+                message: 'Tarefa não encontrada'
+            });
+        } else {
+            res.json({
+                message: 'Tarefa deletada com sucesso',
+                id: id
+            });
+        }
+    });
+});
+
+/**
+ * @swagger
+ * /tasks/{id}:
+ *   get:
+ *     summary: Buscar tarefa por ID
+ *     description: Retorna uma tarefa específica pelo ID
+ *     tags: [Tasks]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: ID da tarefa
+ *     responses:
+ *       200:
+ *         description: Dados da tarefa
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/Task'
+ *       500:
+ *         description: Erro de conexão MySQL
+ *         content:
+ *           text/plain:
+ *             schema:
+ *               type: string
+ *               example: 'MySQL connection error.'
+ */
+app.get("/tasks/:id", (req, res) => {
+    connection.query("SELECT * FROM tasks WHERE id = ?", [req.params.id], (err, results) => {
         if (err) {
             res.status(500).send('MySQL connection error.');
         } else {
