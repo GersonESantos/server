@@ -3,35 +3,29 @@ import cors from 'cors';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import swaggerJsdoc from 'swagger-jsdoc';
-import swaggerUi from 'swagger-ui-express';
+import * as swaggerUi from 'swagger-ui-express';
 import { z } from 'zod';
 import { zodToJsonSchema } from 'zod-to-json-schema';
 
 // Criar instância do Express
 const app = express();
 
-// Middleware de segurança
+// Middleware básico
 app.use(helmet());
+app.use(cors({
+  origin: ['http://localhost:3000', 'http://localhost:5173'],
+  credentials: true
+}));
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
 // Rate limiting
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutos
-  max: 100, // limite de 100 requests por windowMs
+  max: 100,
   message: 'Muitas requisições deste IP, tente novamente em 15 minutos.'
 });
 app.use(limiter);
-
-// Middleware para parsing JSON
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true }));
-
-// Configurar CORS
-app.use(cors({
-  origin: ['http://localhost:3000', 'http://localhost:5173'],
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
-}));
 
 // Schemas Zod
 const healthResponseSchema = z.object({
@@ -110,7 +104,7 @@ const swaggerOptions = {
     },
     servers: [
       {
-        url: 'http://localhost:3333',
+        url: 'http://localhost:3334',
         description: 'Servidor de desenvolvimento'
       }
     ],
@@ -140,13 +134,13 @@ const swaggerOptions = {
       }
     }
   },
-  apis: ['./src/server.ts'] // Caminho para este arquivo
+  apis: ['./src/server.ts']
 };
 
 const swaggerSpec = swaggerJsdoc(swaggerOptions);
 
 // Middleware de validação Zod
-const validateSchema = (schema: z.ZodSchema) => {
+const validateBody = (schema: z.ZodSchema) => {
   return (req: express.Request, res: express.Response, next: express.NextFunction): void => {
     try {
       req.body = schema.parse(req.body);
@@ -343,7 +337,7 @@ app.get('/usuarios', (req: express.Request, res: express.Response) => {
  *             schema:
  *               $ref: '#/components/schemas/ErrorResponse'
  */
-app.post('/usuarios', validateSchema(criarUsuarioSchema), (req: express.Request, res: express.Response) => {
+app.post('/usuarios', validateBody(criarUsuarioSchema), (req: express.Request, res: express.Response) => {
   const { nome, email, ativo = true } = req.body as {
     nome: string;
     email: string;
@@ -404,7 +398,7 @@ const start = async () => {
 };
 
 // Graceful shutdown
-const gracefulShutdown = (signal: string) => {
+const gracefulShutdown = async (signal: string) => {
   console.log(`\n🛑 Recebido sinal ${signal}. Fechando servidor...`);
   
   try {
