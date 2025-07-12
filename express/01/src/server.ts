@@ -6,6 +6,23 @@ import swaggerJsdoc from 'swagger-jsdoc';
 import * as swaggerUi from 'swagger-ui-express';
 import { z } from 'zod';
 import { zodToJsonSchema } from 'zod-to-json-schema';
+import mysql from 'mysql2';
+
+const connection = mysql.createConnection({
+    host: 'localhost',
+    user: 'root',
+    password: 'Gabibi89*',
+    database: 'bd_tasks'
+});
+
+// Verificar conexão MySQL
+connection.connect((err) => {
+    if (err) {
+        console.error('❌ Erro ao conectar com MySQL:', err);
+    } else {
+        console.log('✅ MySQL conectado com sucesso!');
+    }
+});
 
 // Criar instância do Express
 const app = express();
@@ -376,7 +393,62 @@ app.use('*', (req: express.Request, res: express.Response) => {
     timestamp: new Date().toISOString()
   });
 });
+// rotas
+// ----------------------------------------
+app.get("/", (req, res) => {
+    connection.query("SELECT COUNT(*) users FROM users", (err, results) => {
+        if (err) {
+            res.send('MySQL connection error.');
+        }
+        res.send('MySQL connection OK.');
+    })
+});
 
+// ...existing code...
+
+// Rota para listar todos os usuários
+app.get("/user", (req, res) => {
+    connection.query("SELECT * FROM users", (err, results) => {
+        if (err) {
+            res.status(500).send('MySQL connection error.');
+        } else {
+            res.json(results);
+        }
+    });
+});
+
+// ...existing code...
+
+// ----------------------------------------
+app.get("/user/:id", (req, res) => {
+    connection.query("SELECT * FROM users WHERE id = ?", [req.params.id], (err, results) => {
+        if (err) {
+            res.send('MySQL connection error.');
+        }
+        res.json(results);
+    })
+});
+
+// ----------------------------------------
+app.get("/user/:id/tasks/", (req, res) => {
+    connection.query("SELECT * FROM tasks WHERE id_user = ?", [req.params.id], (err, results) => {
+        if (err) {
+            res.send('MySQL connection error.');
+        }
+        res.json(results);
+    })
+});
+// Nova rota para login por email
+app.get("/login", (req, res) => {
+    const email = req.query.email;
+    connection.query("SELECT * FROM users WHERE email = ?", [email], (err, results) => {
+        if (err) {
+            res.status(500).send('MySQL connection error.');
+        } else {
+            res.json(results);
+        }
+    });
+});
 // Inicializar servidor
 const start = async () => {
   try {
