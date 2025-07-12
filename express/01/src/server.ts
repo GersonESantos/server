@@ -129,6 +129,32 @@ const usersCountSchema = z.object({
   users: z.number()
 });
 
+// Schemas para operações CRUD de usuários
+const createUserSchema = z.object({
+  name: z.string().min(2, 'Nome deve ter pelo menos 2 caracteres'),
+  email: z.string().email('Email deve ser válido'),
+  password: z.string().min(6, 'Senha deve ter pelo menos 6 caracteres').optional()
+});
+
+const updateUserSchema = z.object({
+  name: z.string().min(2, 'Nome deve ter pelo menos 2 caracteres').optional(),
+  email: z.string().email('Email deve ser válido').optional(),
+  password: z.string().min(6, 'Senha deve ter pelo menos 6 caracteres').optional()
+});
+
+const userResponseSchema = z.object({
+  id: z.number(),
+  name: z.string(),
+  email: z.string().email(),
+  created_at: z.string(),
+  updated_at: z.string()
+});
+
+const messageResponseSchema = z.object({
+  message: z.string(),
+  id: z.number().optional()
+});
+
 // Configuração do Swagger
 const swaggerOptions = {
   definition: {
@@ -186,7 +212,11 @@ const swaggerOptions = {
         User: zodToJsonSchema(userSchema),
         Task: zodToJsonSchema(taskSchema),
         ConnectionStatus: zodToJsonSchema(connectionStatusSchema),
-        UsersCount: zodToJsonSchema(usersCountSchema)
+        UsersCount: zodToJsonSchema(usersCountSchema),
+        CreateUser: zodToJsonSchema(createUserSchema),
+        UpdateUser: zodToJsonSchema(updateUserSchema),
+        UserResponse: zodToJsonSchema(userResponseSchema),
+        MessageResponse: zodToJsonSchema(messageResponseSchema)
       }
     }
   },
@@ -470,6 +500,285 @@ app.get("/user", (req, res) => {
             res.status(500).send('MySQL connection error.');
         } else {
             res.json(results);
+        }
+    });
+});
+
+/**
+ * @swagger
+ * /user:
+ *   post:
+ *     summary: Criar novo usuário
+ *     description: Cria um novo usuário no banco de dados
+ *     tags: [Database]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/CreateUser'
+ *     responses:
+ *       201:
+ *         description: Usuário criado com sucesso
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/MessageResponse'
+ *       400:
+ *         description: Erro de validação
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ *       500:
+ *         description: Erro de conexão MySQL
+ *         content:
+ *           text/plain:
+ *             schema:
+ *               type: string
+ *               example: 'MySQL connection error.'
+ */
+app.post("/user", validateBody(createUserSchema), (req, res) => {
+    const { name, email, password } = req.body;
+    const query = "INSERT INTO users (name, email, password, created_at, updated_at) VALUES (?, ?, ?, NOW(), NOW())";
+    
+    connection.query(query, [name, email, password || null], (err, results: any) => {
+        if (err) {
+            res.status(500).send('MySQL connection error.');
+        } else {
+            res.status(201).json({
+                message: 'Usuário criado com sucesso',
+                id: results.insertId
+            });
+        }
+    });
+});
+
+/**
+ * @swagger
+ * /user:
+ *   put:
+ *     summary: Atualizar usuário completo
+ *     description: Atualiza todos os campos de um usuário (requer todos os campos)
+ *     tags: [Database]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             allOf:
+ *               - $ref: '#/components/schemas/CreateUser'
+ *               - type: object
+ *                 properties:
+ *                   id:
+ *                     type: integer
+ *                     description: ID do usuário
+ *                 required: [id]
+ *     responses:
+ *       200:
+ *         description: Usuário atualizado com sucesso
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/MessageResponse'
+ *       400:
+ *         description: Erro de validação
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ *       404:
+ *         description: Usuário não encontrado
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/MessageResponse'
+ *       500:
+ *         description: Erro de conexão MySQL
+ *         content:
+ *           text/plain:
+ *             schema:
+ *               type: string
+ *               example: 'MySQL connection error.'
+ */
+app.put("/user", validateBody(createUserSchema.extend({ id: z.number() })), (req, res) => {
+    const { id, name, email, password } = req.body;
+    const query = "UPDATE users SET name = ?, email = ?, password = ?, updated_at = NOW() WHERE id = ?";
+    
+    connection.query(query, [name, email, password || null, id], (err, results: any) => {
+        if (err) {
+            res.status(500).send('MySQL connection error.');
+        } else if (results.affectedRows === 0) {
+            res.status(404).json({
+                message: 'Usuário não encontrado'
+            });
+        } else {
+            res.json({
+                message: 'Usuário atualizado com sucesso',
+                id: id
+            });
+        }
+    });
+});
+
+/**
+ * @swagger
+ * /user:
+ *   patch:
+ *     summary: Atualizar usuário parcial
+ *     description: Atualiza campos específicos de um usuário (campos opcionais)
+ *     tags: [Database]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             allOf:
+ *               - $ref: '#/components/schemas/UpdateUser'
+ *               - type: object
+ *                 properties:
+ *                   id:
+ *                     type: integer
+ *                     description: ID do usuário
+ *                 required: [id]
+ *     responses:
+ *       200:
+ *         description: Usuário atualizado com sucesso
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/MessageResponse'
+ *       400:
+ *         description: Erro de validação
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ *       404:
+ *         description: Usuário não encontrado
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/MessageResponse'
+ *       500:
+ *         description: Erro de conexão MySQL
+ *         content:
+ *           text/plain:
+ *             schema:
+ *               type: string
+ *               example: 'MySQL connection error.'
+ */
+app.patch("/user", validateBody(updateUserSchema.extend({ id: z.number() })), (req, res) => {
+    const { id, name, email, password } = req.body;
+    
+    // Construir query dinâmica baseada nos campos fornecidos
+    const updates = [];
+    const values = [];
+    
+    if (name !== undefined) {
+        updates.push("name = ?");
+        values.push(name);
+    }
+    if (email !== undefined) {
+        updates.push("email = ?");
+        values.push(email);
+    }
+    if (password !== undefined) {
+        updates.push("password = ?");
+        values.push(password);
+    }
+    
+    if (updates.length === 0) {
+        res.status(400).json({
+            error: 'Validation Error',
+            message: 'Pelo menos um campo deve ser fornecido para atualização',
+            timestamp: new Date().toISOString()
+        });
+        return;
+    }
+    
+    updates.push("updated_at = NOW()");
+    values.push(id);
+    
+    const query = `UPDATE users SET ${updates.join(', ')} WHERE id = ?`;
+    
+    connection.query(query, values, (err, results: any) => {
+        if (err) {
+            res.status(500).send('MySQL connection error.');
+        } else if (results.affectedRows === 0) {
+            res.status(404).json({
+                message: 'Usuário não encontrado'
+            });
+        } else {
+            res.json({
+                message: 'Usuário atualizado com sucesso',
+                id: id
+            });
+        }
+    });
+});
+
+/**
+ * @swagger
+ * /user:
+ *   delete:
+ *     summary: Deletar usuário
+ *     description: Remove um usuário do banco de dados
+ *     tags: [Database]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               id:
+ *                 type: integer
+ *                 description: ID do usuário
+ *             required: [id]
+ *     responses:
+ *       200:
+ *         description: Usuário deletado com sucesso
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/MessageResponse'
+ *       400:
+ *         description: Erro de validação
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ *       404:
+ *         description: Usuário não encontrado
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/MessageResponse'
+ *       500:
+ *         description: Erro de conexão MySQL
+ *         content:
+ *           text/plain:
+ *             schema:
+ *               type: string
+ *               example: 'MySQL connection error.'
+ */
+app.delete("/user", validateBody(z.object({ id: z.number() })), (req, res) => {
+    const { id } = req.body;
+    const query = "DELETE FROM users WHERE id = ?";
+    
+    connection.query(query, [id], (err, results: any) => {
+        if (err) {
+            res.status(500).send('MySQL connection error.');
+        } else if (results.affectedRows === 0) {
+            res.status(404).json({
+                message: 'Usuário não encontrado'
+            });
+        } else {
+            res.json({
+                message: 'Usuário deletado com sucesso',
+                id: id
+            });
         }
     });
 });
