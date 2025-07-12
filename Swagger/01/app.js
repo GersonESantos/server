@@ -2,6 +2,7 @@ const express = require('express');
 const app = express();
 const swaggerUi = require('swagger-ui-express');
 const swaggerDocument = require('./Swagger.json');
+const routes = require('./routes');
 
 // Middleware para parsing JSON
 app.use(express.json());
@@ -9,13 +10,8 @@ app.use(express.json());
 // Rota para documentação Swagger
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 
-// Rota principal
-app.get('/', (req, res) => {
-  res.json({
-    message: 'API funcionando!',
-    documentation: '/api-docs'
-  });
-});
+// Usar as rotas
+app.use('/', routes);
 
 // Iniciar servidor
 const PORT = process.env.PORT || 3000;
