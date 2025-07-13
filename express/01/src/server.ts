@@ -180,15 +180,6 @@ const taskResponseSchema = z.object({
   updated_at: z.string()
 });
 
-// Schema para resposta da conexão MySQL
-const mysqlConnectionSchema = z.object({
-  status: z.string(),
-  message: z.string(),
-  timestamp: z.string(),
-  database: z.string(),
-  host: z.string()
-});
-
 // Configuração do Swagger
 const swaggerOptions = {
   definition: {
@@ -257,8 +248,7 @@ const swaggerOptions = {
         MessageResponse: zodToJsonSchema(messageResponseSchema),
         CreateTask: zodToJsonSchema(createTaskSchema),
         UpdateTask: zodToJsonSchema(updateTaskSchema),
-        TaskResponse: zodToJsonSchema(taskResponseSchema),
-        MySQLConnection: zodToJsonSchema(mysqlConnectionSchema)
+        TaskResponse: zodToJsonSchema(taskResponseSchema)
       }
     }
   },
@@ -1310,186 +1300,6 @@ app.get("/tasks/:id", (req, res) => {
             res.json(results);
         }
     });
-});
-
-/**
- * @swagger
- * /mysql/status:
- *   get:
- *     summary: Verificar status da conexão MySQL
- *     description: Retorna o status atual da conexão com o banco de dados MySQL
- *     tags: [Database]
- *     responses:
- *       200:
- *         description: Status da conexão MySQL
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 status:
- *                   type: string
- *                   enum: ['connected', 'disconnected', 'error']
- *                   example: 'connected'
- *                 message:
- *                   type: string
- *                   example: 'MySQL conectado com sucesso!'
- *                 timestamp:
- *                   type: string
- *                   format: date-time
- *                   example: '2025-07-12T10:30:00.000Z'
- *                 database:
- *                   type: string
- *                   example: 'bd_tasks'
- *                 host:
- *                   type: string
- *                   example: 'localhost'
- *       500:
- *         description: Erro na conexão
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/ErrorResponse'
- */
-app.get('/mysql/status', (req: express.Request, res: express.Response) => {
-  // Testar conexão executando uma query simples
-  connection.query('SELECT 1 as test', (err, results) => {
-    const timestamp = new Date().toISOString();
-    
-    if (err) {
-      console.error('❌ Erro ao verificar conexão MySQL:', err);
-      const errorResponse = {
-        status: 'error',
-        message: `Erro na conexão MySQL: ${err.message}`,
-        timestamp,
-        database: 'bd_tasks',
-        host: 'localhost'
-      };
-      
-      // Validar resposta
-      const validatedResponse = mysqlConnectionSchema.parse(errorResponse);
-      res.status(500).json(validatedResponse);
-    } else {
-      console.log('✅ Conexão MySQL verificada com sucesso!');
-      const successResponse = {
-        status: 'connected',
-        message: 'MySQL conectado com sucesso!',
-        timestamp,
-        database: 'bd_tasks',
-        host: 'localhost'
-      };
-      
-      // Validar resposta
-      const validatedResponse = mysqlConnectionSchema.parse(successResponse);
-      res.status(200).json(validatedResponse);
-    }
-  });
-});
-
-/**
- * @swagger
- * /mysql/ping:
- *   get:
- *     summary: Ping na conexão MySQL
- *     description: Testa a conectividade com o banco MySQL usando ping
- *     tags: [Database]
- *     responses:
- *       200:
- *         description: Ping bem-sucedido
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 status:
- *                   type: string
- *                   example: 'success'
- *                 message:
- *                   type: string
- *                   example: 'MySQL ping successful'
- *                 responseTime:
- *                   type: number
- *                   description: Tempo de resposta em milissegundos
- *                   example: 15
- *                 timestamp:
- *                   type: string
- *                   format: date-time
- *       500:
- *         description: Erro no ping
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/ErrorResponse'
- */
-app.get('/mysql/ping', (req: express.Request, res: express.Response) => {
-  const startTime = Date.now();
-  
-  connection.ping((err) => {
-    const endTime = Date.now();
-    const responseTime = endTime - startTime;
-    const timestamp = new Date().toISOString();
-    
-    if (err) {
-      console.error('❌ Erro no ping MySQL:', err);
-      res.status(500).json({
-        status: 'error',
-        message: `Erro no ping MySQL: ${err.message}`,
-        responseTime,
-        timestamp
-      });
-    } else {
-      console.log(`✅ MySQL ping successful - ${responseTime}ms`);
-      res.status(200).json({
-        status: 'success',
-        message: 'MySQL ping successful',
-        responseTime,
-        timestamp
-      });
-    }
-  });
-});
-
-/**
- * @swagger
- * /mysql/info:
- *   get:
- *     summary: Informações da conexão MySQL
- *     description: Retorna informações detalhadas sobre a configuração da conexão MySQL
- *     tags: [Database]
- *     responses:
- *       200:
- *         description: Informações da conexão
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 host:
- *                   type: string
- *                   example: 'localhost'
- *                 database:
- *                   type: string
- *                   example: 'bd_tasks'
- *                 user:
- *                   type: string
- *                   example: 'root'
- *                 threadId:
- *                   type: number
- *                   example: 123
- *                 timestamp:
- *                   type: string
- *                   format: date-time
- */
-app.get('/mysql/info', (req: express.Request, res: express.Response) => {
-  const connectionInfo = {
-    host: connection.config.host,
-    database: connection.config.database,
-    user: connection.config.user,
-    threadId: connection.threadId,
-    timestamp: new Date().toISOString()
-  };
-  
-  res.status(200).json(connectionInfo);
 });
 
 // Middleware de tratamento de erros
