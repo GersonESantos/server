@@ -1,6 +1,6 @@
 import { Express } from 'express';
 import { Description, ExpressInitializer, SwaggerEndpoint, SwaggerInitializer, Title, Version } from 'express-swagger-autoconfigure';
-import HelloWorld from './controllers/HelloWorld';
+import HelloWorld from './controllers/HelloWorld.js';
 
 @SwaggerInitializer
 @SwaggerEndpoint('/docs')
