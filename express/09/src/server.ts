@@ -6,9 +6,23 @@ import swaggerJsdoc from 'swagger-jsdoc';
 import * as swaggerUi from 'swagger-ui-express';
 import { z } from 'zod';
 import { zodToJsonSchema } from 'zod-to-json-schema';
-import connection from './routes/conexao_mysql.js';
+import mysql from 'mysql2';
 
+const connection = mysql.createConnection({
+    host: 'localhost',
+    user: 'root',
+    password: 'Gabibi89*',
+    database: 'bd_tasks'
+});
 
+// Verificar conexão MySQL
+connection.connect((err) => {
+    if (err) {
+        console.error('❌ Erro ao conectar com MySQL:', err);
+    } else {
+        console.log('✅ MySQL conectado com sucesso!');
+    }
+});
 
 // Criar instância do Express
 const app = express();

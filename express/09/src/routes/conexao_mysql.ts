@@ -1,5 +1,3 @@
-import mysql from 'mysql2';
-
 const connection = mysql.createConnection({
     host: 'localhost',
     user: 'root',
@@ -15,6 +13,3 @@ connection.connect((err) => {
         console.log('✅ MySQL conectado com sucesso!');
     }
 });
-
-// Exportar a conexão para uso em outros arquivos
-export default connection;
