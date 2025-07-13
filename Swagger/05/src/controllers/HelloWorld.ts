@@ -1,4 +1,4 @@
-import { Controller ,Get, StatusResponse, Body } from "express-swagger-autoconfigure";
+import { Controller , Get , StatusResponse , Body } from "express-swagger-autoconfigure";
 import { Request, Response } from "express";
 @Controller('/api')
 export default class HelloWorld {

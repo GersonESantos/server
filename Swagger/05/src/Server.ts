@@ -1,5 +1,5 @@
 
-import App from "./app"; 
+import App from "./App"; 
 const app = new App().getApp();
 
 app.listen(5000, () => {
