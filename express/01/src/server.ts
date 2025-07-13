@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
@@ -16,7 +17,7 @@ const app = express();
 // Middleware básico
 app.use(helmet());
 app.use(cors({
-  origin: ['http://localhost:3000', 'http://localhost:5173'],
+  origin: process.env.CORS_ORIGINS?.split(',') || ['http://localhost:3000', 'http://localhost:5173'],
   credentials: true
 }));
 app.use(express.json());
@@ -24,8 +25,8 @@ app.use(express.urlencoded({ extended: true }));
 
 // Rate limiting
 const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutos
-  max: 100,
+  windowMs: Number(process.env.RATE_LIMIT_WINDOW_MS) || 15 * 60 * 1000, // 15 minutos
+  max: Number(process.env.RATE_LIMIT_MAX_REQUESTS) || 100,
   message: 'Muitas requisições deste IP, tente novamente em 15 minutos.'
 });
 app.use(limiter);
@@ -171,12 +172,12 @@ const swaggerOptions = {
   definition: {
     openapi: '3.0.0',
     info: {
-      title: 'API Health Check - Express + Zod',
-      description: 'Documentação completa da API de Health Check com validação de schemas usando Zod e TypeScript no Express',
-      version: '1.0.0',
+      title: process.env.API_TITLE || 'API Health Check - Express + Zod',
+      description: process.env.API_DESCRIPTION || 'Documentação completa da API de Health Check com validação de schemas usando Zod e TypeScript no Express',
+      version: process.env.API_VERSION || '1.0.0',
       contact: {
-        name: 'Desenvolvedor',
-        email: 'dev@exemplo.com'
+        name: process.env.CONTACT_NAME || 'Desenvolvedor',
+        email: process.env.CONTACT_EMAIL || 'dev@exemplo.com'
       },
       license: {
         name: 'ISC',
@@ -185,7 +186,7 @@ const swaggerOptions = {
     },
     servers: [
       {
-        url: 'http://localhost:3334',
+        url: `http://${process.env.HOST || 'localhost'}:${process.env.PORT || 3334}`,
         description: 'Servidor de desenvolvimento'
       }
     ],
@@ -300,8 +301,8 @@ app.get('/api', (req: express.Request, res: express.Response) => {
   const response = {
     message: 'API está funcionando!',
     api: 'Express Server com Swagger',
-    version: '1.0.0',
-    documentacao: '/docs',
+    version: process.env.API_VERSION || '1.0.0',
+    documentacao: process.env.SWAGGER_PATH || '/docs',
     endpoints: ['/health', '/status', '/usuarios', '/user', '/tasks', '/login', '/docs']
   };
 
@@ -331,7 +332,7 @@ app.get('/health', (req: express.Request, res: express.Response) => {
     timestamp: new Date().toISOString(),
     uptime: process.uptime(),
     environment: process.env.NODE_ENV || 'development',
-    version: '1.0.0'
+    version: process.env.API_VERSION || '1.0.0'
   };
 
   // Validar resposta
@@ -372,7 +373,7 @@ app.get('/status', (req: express.Request, res: express.Response) => {
       usage: process.cpuUsage().user / 1000000 // Converter para segundos
     },
     environment: process.env.NODE_ENV || 'development',
-    version: '1.0.0',
+    version: process.env.API_VERSION || '1.0.0',
     nodeVersion: process.version
   };
 
